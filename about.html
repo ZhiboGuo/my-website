@@ -20,9 +20,30 @@
     </style>
 </head>
 <body>
-    <h1>Hello World!</h1>
-    <p>这是我的第二个页面，系统逻辑运行正常。</p>
-    <br>
-    <a href="index.html">← 返回酷酷的主页</a>
+    <div style="display: flex; align-items: flex-start; max-width: 1100px; gap: 30px; margin: auto; padding: 20px;">
+        
+        <div style="flex: 1;">
+            <img src="my-photo.jpg" alt="我的照片" style="width: 100%; border-radius: 10px; border: 2px solid #00ff99;">
+        </div>
+
+        <div style="flex: 1.5; text-align: left;">
+            <h1>关于 Zhibo Guo</h1>
+                <p>地点：<a href="https://www.google.com/maps/place/Moncton,+NB/" target="_blank" style="color: #e0e0e0; text-decoration: underline;">Moncton, New Brunswick</a></p>
+    <section style="max-width: 600px; text-align: left;">
+            <p><strong>专业背景：</strong> 游戏逻辑测试员</p>
+            <p><strong>核心兴趣：</strong> 独立游戏 Beta 测试、系统逻辑验证</p>
+            <br>
+            <a href="index.html">← 返回系统主页</a>
+        </div>
+
+        <div style="flex: 1; min-width: 200px;">
+            <h3 style="color: #00ff99; margin-top: 0;">实时天气</h3>
+            <a class="weatherwidget-io" href="https://weatherwidget.io/w/moncton_nb/" data-label_1="MONCTON" data-label_2="WEATHER" data-theme="dark" data-basecolor="#1a1a1a" data-accent="#00ff99" data-textcolor="#ffffff">MONCTON WEATHER</a>
+            <script>
+            !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
+            </script>
+        </div>
+
+    </div>
 </body>
 </html>
