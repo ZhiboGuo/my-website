@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>魔法扑克：挑战 80 分</title>
+    <style>
+        :root { --bg: #1a1a2e; --card-num: #e94560; --card-magic: #0f3460; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        /* 状态栏优化 */
+        #stats { 
+            margin-bottom: 20px; font-size: 1.4em; border: 2px solid #4ecca3; 
+            padding: 15px 30px; border-radius: 50px; background: #16213e; 
+            box-shadow: 0 0 20px rgba(78, 204, 163, 0.2);
+            display: flex; gap: 20px;
+        }
+        .target-score { color: #f1c40f; font-weight: bold; border-left: 1px solid #444; padding-left: 20px; }
+        
+        #hand { display: flex; gap: 15px; min-height: 180px; padding: 20px; border: 2px dashed #333; border-radius: 12px; width: 85%; justify-content: center; background: #0f34601a; margin-bottom: 20px; }
+        
+        /* 卡牌样式 */
+        .card {
+            width: 100px; height: 140px; border-radius: 10px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; font-size: 24px; font-weight: bold;
+            user-select: none; transition: all 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .card.numeric { background: white; color: #333; border: 4px solid var(--card-num); }
+        .card.magic { background: var(--card-magic); color: white; border: 4px solid #4ecca3; opacity: 0.8; }
+        .card.magic.draggable { cursor: grab; opacity: 1; transform: scale(1.05); border-style: dashed; animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(78, 204, 163, 0); } 100% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0); } }
+
+        .type-label { font-size: 11px; position: absolute; top: 8px; opacity: 0.7; }
+        .phase-indicator { margin: 10px; padding: 8px 20px; border-radius: 20px; background: #f1c40f; color: #1a1a2e; font-weight: bold; display: none; margin-bottom: 20px; }
+
+        /* 按钮 */
+        button { padding: 12px 24px; font-size: 16px; cursor: pointer; background: #4ecca3; border: none; border-radius: 5px; color: #1a1a2e; font-weight: bold; margin: 10px; transition: 0.2s; }
+        button:hover:not(:disabled) { background: #45b293; transform: scale(1.05); }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
+        #confirm-btn { background: #f1c40f; }
+    </style>
+</head>
+<body>
+
+    <div id="stats">
+        <div>总分: <span id="total-score">0</span></div>
+        <div class="target-score">目标: 80</div>
+        <div style="font-size: 0.8em; margin-left: 20px; opacity: 0.6;">剩余卡牌: <span id="deck-count">15</span></div>
+    </div>
+
+    <div id="phase-tag" class="phase-indicator">✨ 魔法阶段：请强化你的数字卡</div>
+
+    <div id="hand" ondragover="event.preventDefault()"></div>
+
+    <div id="controls">
+        <button id="draw-btn" onclick="drawPhase()">抽一张牌</button>
+        <button id="lock-btn" onclick="enterMagicPhase()">锁定手牌</button>
+        <button id="confirm-btn" onclick="finalizeRound()" style="display:none;">结束本轮</button>
+    </div>
+
+    <script>
+        let deck = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, "+1", "+2", "+3", "x2", "x3"];
+        let totalScore = 0;
+        let currentHand = [];
+        let isLocked = false;
+        const TARGET = 80;
+
+        deck = deck.sort(() => Math.random() - 0.5);
+
+        function updateUI() {
+            document.getElementById('total-score').innerText = totalScore;
+            document.getElementById('deck-count').innerText = deck.length;
+            document.getElementById('draw-btn').disabled = (currentHand.length >= 5 || deck.length === 0 || isLocked);
+            document.getElementById('lock-btn').disabled = (currentHand.length === 0 || isLocked);
+            document.getElementById('lock-btn').style.display = isLocked ? 'none' : 'inline-block';
+            document.getElementById('confirm-btn').style.display = isLocked ? 'inline-block' : 'none';
+            document.getElementById('phase-tag').style.display = isLocked ? 'block' : 'none';
+        }
+
+        function drawPhase() {
+            if (deck.length > 0 && currentHand.length < 5) {
+                const val = deck.pop();
+                currentHand.push({ id: Math.random(), value: val, type: typeof val === 'number' ? 'num' : 'magic' });
+                renderHand();
+                updateUI();
+            }
+        }
+
+        function enterMagicPhase() {
+            isLocked = true;
+            const hasMagic = currentHand.some(card => card.type === 'magic');
+            const hasNumeric = currentHand.some(card => card.type === 'num');
+
+            if (!hasMagic || !hasNumeric) {
+                finalizeRound(); // 直接进入结算逻辑，不再弹窗
+                return;
+            }
+            renderHand();
+            updateUI();
+        }
+
+        function renderHand() {
+            const handEl = document.getElementById('hand');
+            handEl.innerHTML = '';
+            currentHand.forEach((card, index) => {
+                const div = document.createElement('div');
+                div.className = `card ${card.type === 'num' ? 'numeric' : 'magic'}`;
+                if (card.type === 'magic' && isLocked) div.classList.add('draggable');
+                div.draggable = (card.type === 'magic' && isLocked);
+                div.innerHTML = `<span class="type-label">${card.type === 'num' ? '数字' : '魔法'}</span>${card.value}`;
+                
+                if (isLocked) {
+                    div.ondragstart = (e) => e.dataTransfer.setData("fromIdx", index);
+                    div.ondrop = (e) => applyMagic(e.dataTransfer.getData("fromIdx"), index);
+                }
+                handEl.appendChild(div);
+            });
+        }
+
+        function applyMagic(from, to) {
+            const magicCard = currentHand[from];
+            const targetCard = currentHand[to];
+            if (magicCard && targetCard && magicCard.type === 'magic' && targetCard.type === 'num') {
+                const effect = magicCard.value;
+                if (effect.startsWith('+')) targetCard.value += parseInt(effect.substring(1));
+                else if (effect.startsWith('x')) targetCard.value *= parseInt(effect.substring(1));
+                currentHand.splice(from, 1);
+                renderHand();
+                
+                // 再次检查是否还有可用的组合
+                const hasMagic = currentHand.some(card => card.type === 'magic');
+                const hasNumeric = currentHand.some(card => card.type === 'num');
+                if (!hasMagic || !hasNumeric) {
+                    // 也可以选择在这里自动结束，但保留手动点击“结束本轮”更有操作感
+                }
+            }
+        }
+
+        function finalizeRound() {
+            let roundScore = 0;
+            currentHand.forEach(card => {
+                if (card.type === 'num') roundScore += card.value;
+            });
+            
+            totalScore += roundScore;
+            currentHand = []; 
+            isLocked = false;
+            renderHand();
+            updateUI();
+
+            // 检查游戏是否彻底结束
+            if (deck.length === 0) {
+                const message = totalScore >= TARGET ? 
+                    `🎉 挑战成功！\n最终得分: ${totalScore}\n恭喜超过了 80 分！` : 
+                    `💀 挑战失败...\n最终得分: ${totalScore}\n还差一点点达到 80 分。`;
+                alert(message);
+                location.reload();
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
